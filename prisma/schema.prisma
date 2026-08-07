@@ -1,0 +1,180 @@
+// prisma/schema.prisma
+// Source of truth for Kens.lk database schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum ProductCategory {
+  book
+  past_paper
+  stationery
+}
+
+enum FulfilmentType {
+  delivery
+  collect
+}
+
+enum OrderStatus {
+  Processing
+  Awaiting_collection
+  Dispatched
+  Delivered
+  Collected
+  Cancelled
+}
+
+// ─────────────────────────────────────────────
+// Models
+// ─────────────────────────────────────────────
+
+/// Registered customer accounts
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  password      String
+  address       String?
+  school_branch String?
+  phone         String?
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+
+  orders Order[]
+
+  @@map("users")
+}
+
+/// Single-row admin account — always id = 1
+model Admin {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  password_hash String
+  created_at    DateTime @default(now())
+
+  @@map("admin")
+}
+
+/// Physical branch locations (13 rows, seeded)
+model Branch {
+  id         Int      @id @default(autoincrement())
+  name       String
+  address    String
+  phone      String
+  email      String
+  hours      String
+  created_at DateTime @default(now())
+
+  orders Order[]
+
+  @@map("branches")
+}
+
+/// Products — Books, Past Papers, Stationery share this table (category-discriminated)
+model Product {
+  id           String          @id @default(cuid())
+  category     ProductCategory
+  name         String
+  photo        String?
+  price        Decimal         @db.Decimal(10, 2)
+  stock_qty    Int             @default(0)
+  product_code String          @unique
+  availability Boolean         @default(true)
+
+  // Book-only fields
+  isbn    String?
+  author  String?
+  grade   String?
+  subject String?
+
+  // Past Paper fields (grade + subject shared with book above)
+
+  // Stationery-only fields
+  brand String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  bundle_items BundleItem[]
+  order_items  OrderItem[]
+
+  @@map("products")
+}
+
+/// Offer bundles (booklist discounts)
+model Bundle {
+  id           String   @id @default(cuid())
+  name         String
+  photo        String?
+  price        Decimal  @db.Decimal(10, 2)
+  product_code String   @unique
+  grade        String?
+  availability Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  bundle_items BundleItem[]
+  order_items  OrderItem[]
+
+  @@map("bundles")
+}
+
+/// Join table linking bundles to existing products
+model BundleItem {
+  id         Int     @id @default(autoincrement())
+  bundle_id  String
+  product_id String
+
+  bundle  Bundle  @relation(fields: [bundle_id], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [id], onDelete: Restrict)
+
+  @@unique([bundle_id, product_id])
+  @@map("bundle_items")
+}
+
+/// Customer orders — supports both registered (user_id set) and guest (guest_* fields set)
+model Order {
+  id               String         @id @default(cuid())
+  user_id          String?
+  guest_name       String?
+  guest_email      String?
+  guest_phone      String?
+  fulfilment_type  FulfilmentType
+  branch_id        Int?
+  delivery_address String?
+  status           OrderStatus
+  total_amount     Decimal        @db.Decimal(10, 2)
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
+
+  user        User?       @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  branch      Branch?     @relation(fields: [branch_id], references: [id], onDelete: SetNull)
+  order_items OrderItem[]
+
+  @@map("orders")
+}
+
+/// Individual line items within an order
+model OrderItem {
+  id         Int     @id @default(autoincrement())
+  order_id   String
+  product_id String?
+  bundle_id  String?
+  quantity   Int
+  unit_price Decimal @db.Decimal(10, 2)
+
+  order   Order    @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [product_id], references: [id], onDelete: SetNull)
+  bundle  Bundle?  @relation(fields: [bundle_id], references: [id], onDelete: SetNull)
+
+  @@map("order_items")
+}
