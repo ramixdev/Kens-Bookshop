@@ -45,6 +45,11 @@
 
     /* Border radius */
     --radius: 0.5rem;
+
+    /* Kens.lk brand tokens (used alongside shadcn CSS-variable system) */
+    --brand-amber: 28 83% 28%; /* #854F0B — offers/bundles accent */
+    --brand-success: 92 64% 18%; /* #27500A — in-stock / success */
+    --brand-teal: 162 75% 24%; /* #0F6E56 — admin accent (mirrors --accent) */
   }
 
   .dark {

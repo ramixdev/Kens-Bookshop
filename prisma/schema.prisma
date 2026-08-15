@@ -100,6 +100,7 @@ model Product {
 
   // Stationery-only fields
   brand String?
+  type  String? // Stationery type: Pens | Pencils | Erasers | Rulers | Highlighters | Markers | Calculators | Folders | Other
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt

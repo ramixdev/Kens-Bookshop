@@ -63,6 +63,18 @@ export const pastPaperSchema = baseProductSchema.extend({
 export const stationerySchema = baseProductSchema.extend({
   category: z.literal("stationery"),
   brand: z.string().optional(),
+  // type is required on the add/edit form; Prisma column is nullable for DB flexibility
+  type: z.enum([
+    "Pens",
+    "Pencils",
+    "Erasers",
+    "Rulers",
+    "Highlighters",
+    "Markers",
+    "Calculators",
+    "Folders",
+    "Other",
+  ]),
 });
 
 export const bundleSchema = z.object({
