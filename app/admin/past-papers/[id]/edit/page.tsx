@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db as prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { PastPaperForm } from "@/components/admin/PastPaperForm";
 import type { PastPaperInput } from "@/lib/schemas";

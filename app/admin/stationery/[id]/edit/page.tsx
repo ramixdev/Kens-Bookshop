@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db as prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { StationeryForm } from "@/components/admin/StationeryForm";
 import type { StationeryInput } from "@/lib/schemas";

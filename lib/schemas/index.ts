@@ -40,8 +40,8 @@ export const branchCollectSchema = z.object({
 const baseProductSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   photo: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-  price: z.coerce.number().positive("Price must be positive"),
-  stock_qty: z.coerce.number().int().min(0, "Stock cannot be negative"),
+  price: z.number().positive("Price must be positive"),
+  stock_qty: z.number().int().min(0, "Stock cannot be negative"),
   product_code: z.string().min(1, "Product code is required"),
   availability: z.boolean().default(true),
 });
@@ -80,7 +80,7 @@ export const stationerySchema = baseProductSchema.extend({
 export const bundleSchema = z.object({
   name: z.string().min(1, "Bundle name is required"),
   photo: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-  price: z.coerce.number().positive("Price must be positive"),
+  price: z.number().positive("Price must be positive"),
   product_code: z.string().min(1, "Product code is required"),
   grade: z.string().optional(),
   availability: z.boolean().default(true),

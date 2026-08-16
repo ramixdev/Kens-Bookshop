@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db as prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { BundleForm } from "@/components/admin/BundleForm";
 import type { BundleInput } from "@/lib/schemas";

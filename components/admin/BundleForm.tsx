@@ -72,7 +72,7 @@ export function BundleForm({ defaultValues, bundleId, initialBooks = [] }: Bundl
   const [selectedBooks, setSelectedBooks] = useState<BookOption[]>(initialBooks);
   const [searching, setSearching] = useState(false);
 
-  const form = useForm<BundleInput>({
+  const form = useForm({
     resolver: zodResolver(bundleSchema),
     defaultValues: {
       name: "",
@@ -242,7 +242,14 @@ export function BundleForm({ defaultValues, bundleId, initialBooks = [] }: Bundl
               <FormItem>
                 <FormLabel>Bundle Price (LKR) *</FormLabel>
                 <FormControl>
-                  <Input type="number" min={0} step={1} placeholder="0" {...field} />
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="0"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

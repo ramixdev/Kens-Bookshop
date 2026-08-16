@@ -54,7 +54,7 @@ export function PastPaperForm({ defaultValues, productId }: PastPaperFormProps) 
   const router = useRouter();
   const isEdit = Boolean(productId);
 
-  const form = useForm<PastPaperInput>({
+  const form = useForm({
     resolver: zodResolver(pastPaperSchema),
     defaultValues: {
       category: "past_paper",
@@ -201,7 +201,14 @@ export function PastPaperForm({ defaultValues, productId }: PastPaperFormProps) 
               <FormItem>
                 <FormLabel>Price (LKR) *</FormLabel>
                 <FormControl>
-                  <Input type="number" min={0} step={1} placeholder="0" {...field} />
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="0"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -216,7 +223,14 @@ export function PastPaperForm({ defaultValues, productId }: PastPaperFormProps) 
               <FormItem>
                 <FormLabel>Stock Qty *</FormLabel>
                 <FormControl>
-                  <Input type="number" min={0} step={1} placeholder="0" {...field} />
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="0"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

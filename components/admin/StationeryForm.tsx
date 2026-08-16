@@ -47,7 +47,7 @@ export function StationeryForm({ defaultValues, productId }: StationeryFormProps
   const router = useRouter();
   const isEdit = Boolean(productId);
 
-  const form = useForm<StationeryInput>({
+  const form = useForm({
     resolver: zodResolver(stationerySchema),
     defaultValues: {
       category: "stationery",
@@ -183,7 +183,14 @@ export function StationeryForm({ defaultValues, productId }: StationeryFormProps
               <FormItem>
                 <FormLabel>Price (LKR) *</FormLabel>
                 <FormControl>
-                  <Input type="number" min={0} step={1} placeholder="0" {...field} />
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="0"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -198,7 +205,14 @@ export function StationeryForm({ defaultValues, productId }: StationeryFormProps
               <FormItem>
                 <FormLabel>Stock Qty *</FormLabel>
                 <FormControl>
-                  <Input type="number" min={0} step={1} placeholder="0" {...field} />
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="0"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

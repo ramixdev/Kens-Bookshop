@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db as prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { BookForm } from "@/components/admin/BookForm";
 import type { BookInput } from "@/lib/schemas";

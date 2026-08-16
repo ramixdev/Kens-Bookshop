@@ -73,7 +73,7 @@ export function BookForm({ defaultValues, productId }: BookFormProps) {
   const router = useRouter();
   const isEdit = Boolean(productId);
 
-  const form = useForm<BookInput>({
+  const form = useForm({
     resolver: zodResolver(bookSchema),
     defaultValues: {
       category: "book",
@@ -254,7 +254,14 @@ export function BookForm({ defaultValues, productId }: BookFormProps) {
               <FormItem>
                 <FormLabel>Price (LKR) *</FormLabel>
                 <FormControl>
-                  <Input type="number" min={0} step={1} placeholder="0" {...field} />
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="0"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -269,7 +276,14 @@ export function BookForm({ defaultValues, productId }: BookFormProps) {
               <FormItem>
                 <FormLabel>Stock Qty *</FormLabel>
                 <FormControl>
-                  <Input type="number" min={0} step={1} placeholder="0" {...field} />
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="0"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

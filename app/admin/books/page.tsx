@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db as prisma } from "@/lib/db";
 import Link from "next/link";
 import Image from "next/image";
 import { Plus, Pencil } from "lucide-react";
