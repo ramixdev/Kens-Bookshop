@@ -119,9 +119,10 @@ async function main() {
       hours: "Mon–Sat 8:30 AM – 6:30 PM",
     },
   ];
-  for (const [i, branch] of branches.entries()) {
-    await prisma.branch.upsert({ where: { id: i + 1 }, update: branch, create: branch });
+  for (let i = 0; i < branches.length; i++) {
+    await prisma.branch.upsert({ where: { id: i + 1 }, update: branches[i], create: branches[i] });
   }
+
   console.log(`✅  ${branches.length} branches upserted`);
 
   // ── Books (22) — upsert keyed on product_code ────────────────────────────────
