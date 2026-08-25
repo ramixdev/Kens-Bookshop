@@ -124,7 +124,8 @@ async function main() {
   }
   console.log(`✅  ${branches.length} branches upserted`);
 
-  // ── Books (20) — upsert keyed on product_code ──────────────────────────────
+  // ── Books (22) — upsert keyed on product_code ────────────────────────────────
+  // update: {} — seeds only CREATE missing rows; never overwrites admin-edited prices/stock.
   const books = [
     {
       name: "Mathematics for Grade 6",
@@ -135,6 +136,26 @@ async function main() {
       price: 850,
       stock_qty: 45,
       product_code: "BK-G6-MATH-01",
+    },
+    {
+      name: "English Language Grade 6",
+      isbn: "978-955-20-1021-1",
+      author: "D. Fernando",
+      grade: "Grade 6",
+      subject: "English",
+      price: 760,
+      stock_qty: 50,
+      product_code: "BK-G6-ENG-01",
+    },
+    {
+      name: "Science Discoveries Grade 6",
+      isbn: "978-955-20-1022-2",
+      author: "R. Perera",
+      grade: "Grade 6",
+      subject: "Science",
+      price: 820,
+      stock_qty: 48,
+      product_code: "BK-G6-SCI-01",
     },
     {
       name: "Science Explorer Grade 7",
@@ -331,7 +352,7 @@ async function main() {
     const { product_code, price, stock_qty, ...rest } = book;
     await prisma.product.upsert({
       where: { product_code },
-      update: { price, stock_qty, ...rest },
+      update: {}, // no-op: never overwrite admin edits
       create: {
         category: "book",
         availability: true,
@@ -468,11 +489,12 @@ async function main() {
       product_code: "PP-G13-ACC-01",
     },
   ];
+  // update: {} — never overwrite admin edits (price, stock, availability)
   for (const pp of pastPapers) {
     const { product_code, price, stock_qty, ...rest } = pp;
     await prisma.product.upsert({
       where: { product_code },
-      update: { price, stock_qty, ...rest },
+      update: {}, // no-op: never overwrite admin edits
       create: {
         category: "past_paper",
         availability: true,
@@ -609,11 +631,12 @@ async function main() {
       product_code: "ST-FOL-TRE-02",
     },
   ];
+  // update: {} — never overwrite admin edits (price, stock, availability)
   for (const item of stationery) {
     const { product_code, price, stock_qty, ...rest } = item;
     await prisma.product.upsert({
       where: { product_code },
-      update: { price, stock_qty, ...rest },
+      update: {}, // no-op: never overwrite admin edits
       create: {
         category: "stationery",
         availability: true,
