@@ -17,7 +17,13 @@ export default async function EditOfferPage({ params }: { params: Promise<{ id: 
               price: true,
               product_code: true,
               photo: true,
+              // Book fields
               grade: true,
+              // Stationery fields
+              brand: true,
+              type: true,
+              // Category discriminator
+              category: true,
             },
           },
         },
@@ -37,13 +43,16 @@ export default async function EditOfferPage({ params }: { params: Promise<{ id: 
     product_ids: bundle.bundle_items.map((bi) => bi.product_id),
   };
 
-  const initialBooks = bundle.bundle_items.map((bi) => ({
+  const initialItems = bundle.bundle_items.map((bi) => ({
     id: bi.product.id,
     name: bi.product.name,
     price: Number(bi.product.price),
     product_code: bi.product.product_code,
     photo: bi.product.photo,
     grade: bi.product.grade,
+    brand: bi.product.brand ?? null,
+    type: bi.product.type ?? null,
+    category: bi.product.category as "book" | "stationery",
   }));
 
   return (
@@ -52,7 +61,7 @@ export default async function EditOfferPage({ params }: { params: Promise<{ id: 
         <h1 className="text-2xl font-bold">Edit Bundle</h1>
         <p className="text-sm text-muted-foreground mt-0.5">{bundle.name}</p>
       </div>
-      <BundleForm defaultValues={defaultValues} bundleId={id} initialBooks={initialBooks} />
+      <BundleForm defaultValues={defaultValues} bundleId={id} initialItems={initialItems} />
     </div>
   );
 }

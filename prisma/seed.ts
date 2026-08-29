@@ -652,7 +652,9 @@ async function main() {
   console.log(`✅  ${stationery.length} stationery items upserted`);
 
   // ── Bundles (3) — upsert keyed on product_code ────────────────────────────
-  const [g6Books, g10Books, g11Books] = await Promise.all([
+  // Grade 6: mixed bundle (books + stationery) — the reference mixed bundle
+  // Grade 10 & 11: books-only bundles
+  const [g6Books, g10Books, g11Books, g6StationeryItems] = await Promise.all([
     prisma.product.findMany({
       where: { category: "book", grade: "Grade 6" },
       select: { id: true, price: true },
@@ -665,41 +667,68 @@ async function main() {
       where: { category: "book", grade: "Grade 11" },
       select: { id: true, price: true },
     }),
+    // Stationery items appropriate for a primary Grade 6 student
+    prisma.product.findMany({
+      where: {
+        category: "stationery",
+        product_code: { in: ["ST-PEN-CAM-01", "ST-PEN-STA-01", "ST-ERA-CLA-01"] },
+      },
+      select: { id: true, price: true },
+    }),
   ]);
+
+  // Grade 6 bundle items = all Grade 6 books + 3 stationery items
+  const g6Items = [...g6Books, ...g6StationeryItems];
 
   const bundleSpecs = [
     {
-      name: "Grade 6 Core Booklist Bundle 2025",
+      name: "Grade 6 Complete Bundle 2025",
       product_code: "BDL-G6-2025",
       grade: "Grade 6",
-      books: g6Books,
+      items: g6Items, // books + stationery mix
     },
     {
       name: "Grade 10 Core Booklist Bundle 2025",
       product_code: "BDL-G10-2025",
       grade: "Grade 10",
-      books: g10Books,
+      items: g10Books,
     },
     {
       name: "Grade 11 A/L Booklist Bundle 2025",
       product_code: "BDL-G11-2025",
       grade: "Grade 11",
-      books: g11Books,
+      items: g11Books,
     },
   ];
 
   for (const spec of bundleSpecs) {
-    if (spec.books.length === 0) {
-      console.log(`⚠️   Skipping ${spec.name} — no matching books found`);
+    if (spec.items.length === 0) {
+      console.log(`⚠️   Skipping ${spec.name} — no matching items found`);
       continue;
     }
-    const bundlePrice = Math.round(spec.books.reduce((s, b) => s + Number(b.price), 0) * 0.9);
+    const bundlePrice = Math.round(spec.items.reduce((s, b) => s + Number(b.price), 0) * 0.9);
     const existing = await prisma.bundle.findUnique({ where: { product_code: spec.product_code } });
     if (existing) {
-      await prisma.bundle.update({
-        where: { product_code: spec.product_code },
-        data: { price: bundlePrice, name: spec.name, grade: spec.grade, availability: true },
-      });
+      // For the Grade 6 mixed bundle: always rebuild items so stationery gets added.
+      // For Grade 10/11 books-only bundles: update metadata only — preserves admin edits.
+      if (spec.product_code === "BDL-G6-2025") {
+        await prisma.bundleItem.deleteMany({ where: { bundle_id: existing.id } });
+        await prisma.bundle.update({
+          where: { id: existing.id },
+          data: {
+            price: bundlePrice,
+            name: spec.name,
+            grade: spec.grade,
+            availability: true,
+            bundle_items: { create: spec.items.map((i) => ({ product_id: i.id })) },
+          },
+        });
+      } else {
+        await prisma.bundle.update({
+          where: { product_code: spec.product_code },
+          data: { price: bundlePrice, name: spec.name, grade: spec.grade, availability: true },
+        });
+      }
     } else {
       await prisma.bundle.create({
         data: {
@@ -709,13 +738,17 @@ async function main() {
           grade: spec.grade,
           availability: true,
           photo: null,
-          bundle_items: { create: spec.books.map((b) => ({ product_id: b.id })) },
+          bundle_items: { create: spec.items.map((i) => ({ product_id: i.id })) },
         },
       });
     }
-    console.log(
-      `✅  Bundle "${spec.name}" upserted — ${spec.books.length} books, LKR ${bundlePrice}`
-    );
+    const bookCount = spec.items === g6Items ? g6Books.length : spec.items.length;
+    const stationeryCount = spec.items === g6Items ? g6StationeryItems.length : 0;
+    const itemSummary =
+      stationeryCount > 0
+        ? `${bookCount} books + ${stationeryCount} stationery items`
+        : `${spec.items.length} books`;
+    console.log(`✅  Bundle "${spec.name}" upserted — ${itemSummary}, LKR ${bundlePrice}`);
   }
 }
 

@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { ProductCategory } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
-
-type Category = "book" | "past_paper" | "stationery";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
 
-  const category = searchParams.get("category") as Category | null;
+  const category = searchParams.get("category") as ProductCategory | null;
   const grade = searchParams.get("grade") ?? undefined;
   const subject = searchParams.get("subject") ?? undefined;
   const author = searchParams.get("author") ?? undefined;

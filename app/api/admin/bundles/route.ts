@@ -61,15 +61,18 @@ export async function POST(req: NextRequest) {
 
   const { product_ids, ...bundleData } = parsed.data;
 
-  // Verify all product_ids exist and are books
+  // Verify all product_ids exist and are books or stationery (past_paper excluded)
   const products = await prisma.product.findMany({
-    where: { id: { in: product_ids }, category: "book" },
+    where: { id: { in: product_ids }, category: { in: ["book", "stationery"] } },
     select: { id: true },
   });
 
   if (products.length !== product_ids.length) {
     return NextResponse.json(
-      { error: "One or more selected products not found or are not books." },
+      {
+        error:
+          "One or more selected products not found or not eligible for bundles. Only Books and Stationery may be added.",
+      },
       { status: 422 }
     );
   }

@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!bundle) return { title: "Bundle not found — Kens.lk" };
   return {
     title: `${bundle.name} — Kens.lk`,
-    description: `${bundle.name}. A discounted booklist bundle for ${bundle.grade ?? "students"}. Available at Kens.lk.`,
+    description: `${bundle.name}. A discounted bundle${bundle.grade ? ` for ${bundle.grade}` : ""}. Shop books, stationery and more at Kens.lk.`,
   };
 }
 
@@ -28,7 +28,20 @@ export default async function BundleDetailPage({ params }: PageProps) {
       bundle_items: {
         include: {
           product: {
-            select: { id: true, name: true, price: true, photo: true, author: true, subject: true },
+            select: {
+              id: true,
+              name: true,
+              price: true,
+              photo: true,
+              category: true,
+              // Book fields
+              author: true,
+              subject: true,
+              grade: true,
+              // Stationery fields
+              brand: true,
+              type: true,
+            },
           },
         },
       },
@@ -103,28 +116,61 @@ export default async function BundleDetailPage({ params }: PageProps) {
 
           <div className="border-t border-border pt-6">
             <h2 className="text-sm font-semibold text-foreground mb-3">
-              Included Books ({bundle.bundle_items.length})
+              Includes {bundle.bundle_items.length} item
+              {bundle.bundle_items.length !== 1 ? "s" : ""}
             </h2>
             <ul className="space-y-3">
-              {bundle.bundle_items.map((item) => (
-                <li key={item.product.id} className="flex items-start gap-3 text-sm">
-                  <span className="text-muted-foreground shrink-0">📗</span>
-                  <div className="flex-1 min-w-0">
-                    <Link
-                      href={`/books/${item.product.id}`}
-                      className="hover:text-primary transition-colors font-medium line-clamp-1"
-                    >
-                      {item.product.name}
-                    </Link>
-                    {item.product.author && (
-                      <p className="text-xs text-muted-foreground">{item.product.author}</p>
-                    )}
-                  </div>
-                  <span className="shrink-0 text-muted-foreground">
-                    LKR {Number(item.product.price).toLocaleString()}
-                  </span>
-                </li>
-              ))}
+              {bundle.bundle_items.map((item) => {
+                const p = item.product;
+                const isBook = p.category === "book";
+
+                return (
+                  <li key={p.id} className="flex items-start gap-3 text-sm">
+                    <span className="text-muted-foreground shrink-0 mt-0.5">
+                      {isBook ? "📗" : "🗂️"}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      {isBook ? (
+                        <Link
+                          href={`/books/${p.id}`}
+                          className="hover:text-primary transition-colors font-medium line-clamp-1"
+                        >
+                          {p.name}
+                        </Link>
+                      ) : (
+                        <span className="font-medium line-clamp-1">{p.name}</span>
+                      )}
+
+                      {/* Category-specific pills */}
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {isBook && p.grade && (
+                          <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary">
+                            {p.grade}
+                          </span>
+                        )}
+                        {isBook && p.subject && (
+                          <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary">
+                            {p.subject}
+                          </span>
+                        )}
+                        {!isBook && p.brand && (
+                          <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground">
+                            {p.brand}
+                          </span>
+                        )}
+                        {!isBook && p.type && (
+                          <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground">
+                            {p.type}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-muted-foreground">
+                      LKR {Number(p.price).toLocaleString()}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>

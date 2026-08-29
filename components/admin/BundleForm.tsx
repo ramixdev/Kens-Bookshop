@@ -46,30 +46,52 @@ const GRADES = [
   "Grade 13",
 ];
 
-interface BookOption {
+const STATIONERY_TYPES = [
+  "Pens",
+  "Pencils",
+  "Erasers",
+  "Rulers",
+  "Highlighters",
+  "Markers",
+  "Calculators",
+  "Folders",
+  "Other",
+] as const;
+
+type PickerTab = "book" | "stationery";
+
+interface ItemOption {
   id: string;
   name: string;
   price: number;
   product_code: string;
   photo: string | null;
+  /** Only set for book items */
   grade: string | null;
+  /** Only set for stationery items */
+  brand: string | null;
+  /** Only set for stationery items */
+  type: string | null;
+  category: "book" | "stationery";
 }
 
 interface BundleFormProps {
   defaultValues?: Partial<BundleInput>;
   bundleId?: string;
-  /** Pre-selected books for the edit flow */
-  initialBooks?: BookOption[];
+  /** Pre-selected items for the edit flow */
+  initialItems?: ItemOption[];
 }
 
-export function BundleForm({ defaultValues, bundleId, initialBooks = [] }: BundleFormProps) {
+export function BundleForm({ defaultValues, bundleId, initialItems = [] }: BundleFormProps) {
   const router = useRouter();
   const isEdit = Boolean(bundleId);
 
+  const [pickerTab, setPickerTab] = useState<PickerTab>("book");
   const [searchQuery, setSearchQuery] = useState("");
+  const [stationeryTypeFilter, setStationeryTypeFilter] = useState("");
   const [gradeFilter, setGradeFilter] = useState(defaultValues?.grade ?? "");
-  const [searchResults, setSearchResults] = useState<BookOption[]>([]);
-  const [selectedBooks, setSelectedBooks] = useState<BookOption[]>(initialBooks);
+  const [searchResults, setSearchResults] = useState<ItemOption[]>([]);
+  const [selectedItems, setSelectedItems] = useState<ItemOption[]>(initialItems);
   const [searching, setSearching] = useState(false);
 
   const form = useForm({
@@ -81,53 +103,78 @@ export function BundleForm({ defaultValues, bundleId, initialBooks = [] }: Bundl
       product_code: "",
       grade: "",
       availability: true,
-      product_ids: initialBooks.map((b) => b.id),
+      product_ids: initialItems.map((i) => i.id),
       ...defaultValues,
     },
   });
 
-  // Keep product_ids in sync with selectedBooks
+  // Keep product_ids in sync with selectedItems
   useEffect(() => {
     form.setValue(
       "product_ids",
-      selectedBooks.map((b) => b.id),
+      selectedItems.map((i) => i.id),
       { shouldValidate: true }
     );
-  }, [selectedBooks, form]);
+  }, [selectedItems, form]);
 
-  // Debounced book search
-  const searchBooks = useCallback(async () => {
+  // Debounced search — re-runs whenever tab, query, or filters change
+  const searchItems = useCallback(async () => {
     setSearching(true);
     try {
       const q = new URLSearchParams({
-        category: "book",
+        category: pickerTab,
         ...(searchQuery && { search: searchQuery }),
-        ...(gradeFilter && { grade: gradeFilter }),
+        // Books: auto-filter by bundle grade
+        ...(pickerTab === "book" && gradeFilter && { grade: gradeFilter }),
+        // Stationery: filter by type if chosen
+        ...(pickerTab === "stationery" && stationeryTypeFilter && { type: stationeryTypeFilter }),
         limit: "50",
       });
       const res = await fetch(`/api/admin/products?${q}`);
       if (!res.ok) return;
       const data = await res.json();
-      setSearchResults(data.products as BookOption[]);
+      // Map raw API rows to ItemOption shape
+      setSearchResults(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (data.products as any[]).map((p) => ({
+          id: p.id,
+          name: p.name,
+          price: Number(p.price),
+          product_code: p.product_code,
+          photo: p.photo ?? null,
+          grade: p.grade ?? null,
+          brand: p.brand ?? null,
+          type: p.type ?? null,
+          category: p.category as "book" | "stationery",
+        }))
+      );
     } finally {
       setSearching(false);
     }
-  }, [searchQuery, gradeFilter]);
+  }, [pickerTab, searchQuery, gradeFilter, stationeryTypeFilter]);
 
   useEffect(() => {
-    const t = setTimeout(searchBooks, 350);
+    const t = setTimeout(searchItems, 350);
     return () => clearTimeout(t);
-  }, [searchBooks]);
+  }, [searchItems]);
 
-  const toggleBook = (book: BookOption) => {
-    setSelectedBooks((prev) => {
-      const exists = prev.find((b) => b.id === book.id);
-      return exists ? prev.filter((b) => b.id !== book.id) : [...prev, book];
+  // Reset search state when switching tabs
+  const switchTab = (tab: PickerTab) => {
+    setPickerTab(tab);
+    setSearchQuery("");
+    setStationeryTypeFilter("");
+    setSearchResults([]);
+  };
+
+  const toggleItem = (item: ItemOption) => {
+    setSelectedItems((prev) => {
+      const exists = prev.find((i) => i.id === item.id);
+      return exists ? prev.filter((i) => i.id !== item.id) : [...prev, item];
     });
   };
 
-  const selectedIds = new Set(selectedBooks.map((b) => b.id));
-  const selectedTotal = selectedBooks.reduce((sum, b) => sum + b.price, 0);
+  const selectedIds = new Set(selectedItems.map((i) => i.id));
+  const selectedTotal = selectedItems.reduce((sum, i) => sum + i.price, 0);
   const bundlePrice = Number(form.watch("price")) || 0;
   const savings = selectedTotal - bundlePrice;
 
@@ -142,7 +189,7 @@ export function BundleForm({ defaultValues, bundleId, initialBooks = [] }: Bundl
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err?.error?.formErrors?.[0] ?? "Save failed.");
+        throw new Error(err?.error?.formErrors?.[0] ?? err?.error ?? "Save failed.");
       }
 
       toast.success(isEdit ? "Bundle updated." : "Bundle created.");
@@ -258,7 +305,7 @@ export function BundleForm({ defaultValues, bundleId, initialBooks = [] }: Bundl
         </div>
 
         {/* Savings panel */}
-        {selectedBooks.length > 0 && (
+        {selectedItems.length > 0 && (
           <div className="rounded-lg border border-[#854F0B]/30 bg-[#854F0B]/5 p-4 space-y-1">
             <p className="text-sm font-medium text-[#854F0B]">Bundle savings</p>
             <p className="text-sm text-muted-foreground">
@@ -286,33 +333,34 @@ export function BundleForm({ defaultValues, bundleId, initialBooks = [] }: Bundl
           </div>
         )}
 
-        {/* Book picker */}
+        {/* Item picker */}
         <div className="space-y-3">
           <FormField
             control={form.control}
             name="product_ids"
             render={() => (
               <FormItem>
-                <FormLabel>Select Books *</FormLabel>
+                <FormLabel>Select items for this bundle *</FormLabel>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          {/* Selected books chips */}
-          {selectedBooks.length > 0 && (
+          {/* Selected items chips */}
+          {selectedItems.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {selectedBooks.map((b) => (
+              {selectedItems.map((item) => (
                 <span
-                  key={b.id}
+                  key={item.id}
                   className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-primary/10 text-primary border border-primary/20"
                 >
-                  {b.name}
+                  <span>{item.category === "book" ? "📗" : "🗂️"}</span>
+                  {item.name}
                   <button
                     type="button"
-                    onClick={() => toggleBook(b)}
+                    onClick={() => toggleItem(item)}
                     className="hover:text-destructive ml-1"
-                    aria-label={`Remove ${b.name}`}
+                    aria-label={`Remove ${item.name}`}
                   >
                     ×
                   </button>
@@ -321,19 +369,80 @@ export function BundleForm({ defaultValues, bundleId, initialBooks = [] }: Bundl
             </div>
           )}
 
-          {/* Search */}
+          {/* Picker tabs */}
+          <div className="flex gap-1 rounded-lg border border-border bg-muted p-1 w-fit">
+            <button
+              type="button"
+              id="picker-tab-books"
+              onClick={() => switchTab("book")}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                pickerTab === "book"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              📗 Books
+            </button>
+            <button
+              type="button"
+              id="picker-tab-stationery"
+              onClick={() => switchTab("stationery")}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                pickerTab === "stationery"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              🗂️ Stationery
+            </button>
+          </div>
+
+          {/* Search row */}
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search books by name or code…"
+                placeholder={
+                  pickerTab === "book"
+                    ? "Search books by name or code…"
+                    : "Search stationery by name or code…"
+                }
                 className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                id="bundle-book-search"
+                id="bundle-item-search"
               />
             </div>
+            {/* Stationery: type filter */}
+            {pickerTab === "stationery" && (
+              <select
+                value={stationeryTypeFilter}
+                onChange={(e) => setStationeryTypeFilter(e.target.value)}
+                id="bundle-stationery-type-filter"
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">All types</option>
+                {STATIONERY_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
+
+          {/* Helper note: book tab grade auto-filter */}
+          {pickerTab === "book" && gradeFilter && (
+            <p className="text-xs text-muted-foreground">
+              Showing books for <span className="font-medium">{gradeFilter}</span>. Change the
+              bundle&apos;s grade above to browse a different grade.
+            </p>
+          )}
+          {pickerTab === "stationery" && (
+            <p className="text-xs text-muted-foreground">
+              Stationery is not grade-specific — all items appear regardless of the bundle grade.
+            </p>
+          )}
 
           {/* Results */}
           <div className="max-h-64 overflow-y-auto rounded-lg border border-border divide-y divide-border">
@@ -344,27 +453,31 @@ export function BundleForm({ defaultValues, bundleId, initialBooks = [] }: Bundl
             )}
             {!searching && searchResults.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-6">
-                {searchQuery || gradeFilter
-                  ? "No books match your search."
-                  : "Start typing to search books."}
+                {searchQuery || (pickerTab === "book" ? gradeFilter : stationeryTypeFilter)
+                  ? "No items match your search."
+                  : `Start typing to search ${pickerTab === "book" ? "books" : "stationery"}.`}
               </p>
             )}
             {!searching &&
-              searchResults.map((book) => (
+              searchResults.map((item) => (
                 <label
-                  key={book.id}
+                  key={item.id}
                   className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
                 >
                   <Checkbox
-                    checked={selectedIds.has(book.id)}
-                    onCheckedChange={() => toggleBook(book)}
-                    id={`book-check-${book.id}`}
+                    checked={selectedIds.has(item.id)}
+                    onCheckedChange={() => toggleItem(item)}
+                    id={`item-check-${item.id}`}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{book.name}</p>
+                    <p className="text-sm font-medium truncate">{item.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {book.product_code} · {book.grade ?? "—"} · LKR{" "}
-                      {Number(book.price).toLocaleString()}
+                      {item.product_code}
+                      {item.category === "book" && item.grade && ` · ${item.grade}`}
+                      {item.category === "stationery" && item.brand && ` · ${item.brand}`}
+                      {item.category === "stationery" && item.type && ` · ${item.type}`}
+                      {" · LKR "}
+                      {Number(item.price).toLocaleString()}
                     </p>
                   </div>
                 </label>
